@@ -1,7 +1,8 @@
 from django.contrib import admin, messages
 from .models import Account, Voucher, VoucherType, Ledger
 from django.db import transaction
-from django.core.exceptions import ValidationError
+from .forms import AccountForm
+from django.forms.models import model_to_dict
 
 class AccountActiveListFilter(admin.SimpleListFilter):
 
@@ -20,6 +21,7 @@ class AccountActiveListFilter(admin.SimpleListFilter):
     return queryset.filter(inactive = self.value()=='0')
 
 class AccountAdmin(admin.ModelAdmin):
+  form = AccountForm
   fieldsets = [
     (
       "Account Info", {
@@ -46,11 +48,10 @@ class AccountAdmin(admin.ModelAdmin):
       models = queryset.order_by('account_number').all()
       failed = 0
       for model in models:
-        try:
-          model.inactive = value
-          model.full_clean()
-          model.save()
-        except ValidationError:
+        form = AccountForm({**model_to_dict(model), 'inactive': value}, instance=model)
+        if form.is_valid():
+          form.save()
+        else:
           failed += 1
       if failed:
         self.message_user(request, f"failed to update {failed} accounts", level=messages.ERROR)
