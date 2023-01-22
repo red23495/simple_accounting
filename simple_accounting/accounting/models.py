@@ -4,6 +4,7 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from sequences import get_next_value
 from decimal import Decimal
+from .utils import comply
 
 def non_empty_validator(value: str):
   if len(value.strip()) == 0:
@@ -13,7 +14,21 @@ def non_zero_validator(value):
   if value == 0:
     raise ValidationError('This field can not be 0')
 
+class AccountQuerySet(models.QuerySet):
+
+  version = 1
+
+  @comply(version)
+  def create(self, **kwargs):
+    return super().create(**kwargs)
+
+  @comply(version)
+  def update(self, **kwargs) -> int:
+    return super().update(**kwargs)
+
 class Account(models.Model):
+
+  objects = AccountQuerySet.as_manager()
 
   class AccountTypes(models.IntegerChoices):
     ASSET = 1
@@ -33,7 +48,7 @@ class Account(models.Model):
 
   _inactive_changed = False
 
-  def __setattr__(self, __name: str, __value: any) -> None:
+  def __setattr__(self, __name: str, __value: any):
     if hasattr(self, '_state') and self._state.adding == False and __name == 'inactive' and __value != self.inactive:
       self._inactive_changed = True
     return super().__setattr__(__name, __value)
@@ -55,7 +70,7 @@ class Account(models.Model):
     with transaction.atomic():
       super(Account, self).save(**kwargs)
       if self._inactive_changed:
-        Account.objects.filter(account_number__startswith=self.account_number).update(inactive=self.inactive)
+        Account.objects.filter(account_number__startswith=self.account_number).update(inactive=self.inactive, __v=1)
         self._inactive_changed = False
 
   def __str__(self):
