@@ -17,6 +17,7 @@ def non_zero_validator(value):
 class AccountQuerySet(models.QuerySet):
 
   version = 1
+  # 1 - parent accounts active status is propagated to all sub accounts
 
   @comply(version)
   def create(self, **kwargs):
@@ -39,7 +40,7 @@ class Account(models.Model):
 
   name: str = models.CharField(max_length=256, blank=False)
   account_number: str = models.CharField(max_length=32, unique=True, blank=False, db_index=True)
-  account_type: AccountTypes = models.IntegerField(choices=AccountTypes.choices, null=False, blank=False)
+  account_type: int = models.IntegerField(choices=AccountTypes.choices, null=False, blank=False)
   parent: "Account" = models.ForeignKey('self', null=True, blank=True, related_name='children', on_delete=models.CASCADE)
   description: str = models.TextField(blank=True)
   created_at: datetime = models.DateTimeField(auto_now_add=True)
@@ -75,6 +76,19 @@ class VoucherType(models.Model):
   def __str__(self):
     return f'{self.name} ({self.prefix})'
 
+class VoucherQuerySet(models.QuerySet):
+
+  version = 1
+  # 1 - autogenerates number from type when created, number is not editable
+
+  @comply(version)
+  def create(self, **kwargs):
+    return super().create(**kwargs)
+
+  @comply(version)
+  def update(self, **kwargs) -> int:
+    return super().update(**kwargs)
+
 class Voucher(models.Model):
 
   class Status(models.IntegerChoices):
@@ -86,30 +100,9 @@ class Voucher(models.Model):
   voucher_date: date = models.DateField()
   voucher_type: VoucherType = models.ForeignKey(VoucherType, on_delete=models.CASCADE, blank=False, null=False)
   description: str = models.TextField(null=True, blank=True)
-  status: Status = models.IntegerField(choices=Status.choices, blank=False, default=Status.PENDING)
+  status: int = models.IntegerField(choices=Status.choices, blank=False, default=Status.PENDING)
   created_at: datetime = models.DateTimeField(auto_now_add=True)
   updated_at: datetime = models.DateTimeField(auto_now=True)
-
-  _status_changed = False
-
-  def __setattr__(self, __name: str, __value: any) -> None:
-    if hasattr(self, '_state') and not self._state.adding and __name == 'status' and __value != self.status:
-      self._status_changed = True
-    return super().__setattr__(__name, __value)
-
-  def set_ledgers(self, ledgers):
-    with transaction.atomic():
-      for ledger in ledgers:
-        if isinstance(ledger, dict):
-          ledger = Ledger(**ledger)
-        ledger.voucher = self
-        ledger.status = self.status
-        ledger.full_clean()
-        ledger.save()
-      debit_amount = sum(item.amount for item in self.debits)
-      credit_amount = sum(item.amount for item in self.credits)
-      if debit_amount != credit_amount:
-        raise ValidationError('Debit Credit must be equal')
 
   @property
   def debits(self):
@@ -142,9 +135,6 @@ class Voucher(models.Model):
       if self._state.adding:
         self.voucher_number = self.voucher_type.generate_number()
       super(Voucher, self).save(**kwargs)
-      if self._status_changed:
-        Ledger.objects.filter(voucher=self).update(status=self.status)
-        self._status_changed = False
 
   def __str__(self):
     return self.voucher_number
@@ -154,7 +144,6 @@ class Ledger(models.Model):
   voucher: Voucher = models.ForeignKey(Voucher, on_delete=models.CASCADE, null=False, blank=False, related_name='ledgers')
   account: Account = models.ForeignKey(Account, on_delete=models.CASCADE, null=False, blank=False, related_name='+')
   amount: Decimal = models.DecimalField(max_digits=30, decimal_places=6, validators=[non_zero_validator])
-  status: Voucher.Status = models.IntegerField(choices=Voucher.Status.choices)
   created_at: datetime = models.DateTimeField(auto_now_add=True)
   updated_at: datetime = models.DateTimeField(auto_now=True)
 

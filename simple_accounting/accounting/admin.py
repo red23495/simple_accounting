@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from .models import Account, Voucher, VoucherType, Ledger
 from django.db import transaction
-from .forms import AccountForm
+from .forms import AccountForm, VoucherTypeForm, VoucherForm, LedgerInlineFormset
 from django.forms.models import model_to_dict
 
 class AccountActiveListFilter(admin.SimpleListFilter):
@@ -65,15 +65,19 @@ class AccountAdmin(admin.ModelAdmin):
   make_active.short_description = 'Activate'
   make_inactive.short_description = 'Deactivate'
 
+class VoucherTypeAdmin(admin.ModelAdmin):
+  form = VoucherTypeForm
 
 class LedgerInline(admin.TabularInline):
   model = Ledger
+  formset = LedgerInlineFormset
 
 class VoucherAdmin(admin.ModelAdmin):
   list_display = ('__str__', 'voucher_date', 'amount')
   ordering = ('voucher_number',)
   inlines = [LedgerInline]
+  form = VoucherForm
 
 admin.site.register(Account, AccountAdmin)
-admin.site.register(VoucherType)
+admin.site.register(VoucherType, VoucherTypeAdmin)
 admin.site.register(Voucher, VoucherAdmin)
