@@ -1,12 +1,11 @@
 from django import forms
 from .models import Account
 from django.core.exceptions import ValidationError
-from accounting.utils import non_empty_validator, non_zero_validator
 
 class AccountForm(forms.ModelForm):
 
-  name = forms.CharField(validators=[non_empty_validator])
-  account_number = forms.CharField(validators=[non_empty_validator])
+  name = forms.CharField()
+  account_number = forms.CharField()
 
   def clean(self):
     cleaned_data = super().clean()

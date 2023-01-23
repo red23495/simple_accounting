@@ -12,11 +12,3 @@ def comply(version):
       return func(*args, **kwargs)
     return _func
   return _comply
-
-def non_empty_validator(value: str):
-  if len(value.strip()) == 0:
-      raise ValidationError('This field can not be empty')
-
-def non_zero_validator(value):
-  if value == 0:
-    raise ValidationError('This field can not be 0')

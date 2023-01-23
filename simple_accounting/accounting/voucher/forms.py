@@ -1,13 +1,12 @@
 from django import forms
 from .models import VoucherType, Voucher, Ledger
-from accounting.utils import non_empty_validator, non_zero_validator
 from accounting.account.models import Account
 from django.core.exceptions import ValidationError
 
 class VoucherTypeForm(forms.ModelForm):
 
-  name = forms.CharField(validators=[non_empty_validator])
-  prefix = forms.CharField(validators=[non_empty_validator])
+  name = forms.CharField()
+  prefix = forms.CharField()
 
   class Meta:
     fields = '__all__'
@@ -24,7 +23,12 @@ class VoucherForm(forms.ModelForm):
 
 class LedgerForm(forms.ModelForm):
 
-  amount = forms.DecimalField(validators=[non_zero_validator])
+  def clean_amount(self):
+    value = self.cleaned_data['amount']
+    if value == 0:
+      raise ValidationError('This field can not be 0')
+    return value
+
   class Meta:
     fields = '__all__'
     model = Ledger
