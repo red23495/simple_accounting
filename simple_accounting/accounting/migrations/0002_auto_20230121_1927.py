@@ -3,6 +3,7 @@
 import accounting.models
 from django.db import migrations, models
 import django.db.models.deletion
+import accounting.utils
 
 
 class Migration(migrations.Migration):
@@ -16,19 +17,19 @@ class Migration(migrations.Migration):
             name='VoucherType',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128, validators=[accounting.models.non_empty_validator])),
-                ('prefix', models.CharField(max_length=4, unique=True, validators=[accounting.models.non_empty_validator])),
+                ('name', models.CharField(max_length=128, validators=[accounting.utils.non_empty_validator])),
+                ('prefix', models.CharField(max_length=4, unique=True, validators=[accounting.utils.non_empty_validator])),
             ],
         ),
         migrations.AlterField(
             model_name='account',
             name='account_number',
-            field=models.CharField(db_index=True, max_length=32, unique=True, validators=[accounting.models.non_empty_validator]),
+            field=models.CharField(db_index=True, max_length=32, unique=True, validators=[accounting.utils.non_empty_validator]),
         ),
         migrations.AlterField(
             model_name='account',
             name='name',
-            field=models.CharField(max_length=256, validators=[accounting.models.non_empty_validator]),
+            field=models.CharField(max_length=256, validators=[accounting.utils.non_empty_validator]),
         ),
         migrations.AlterField(
             model_name='account',
@@ -52,7 +53,7 @@ class Migration(migrations.Migration):
             name='Ledger',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=6, max_digits=30, validators=[accounting.models.non_zero_validator])),
+                ('amount', models.DecimalField(decimal_places=6, max_digits=30, validators=[accounting.utils.non_zero_validator])),
                 ('status', models.IntegerField(choices=[(1, 'Pending'), (2, 'Approved'), (3, 'Rejected')])),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
