@@ -37,7 +37,7 @@ class _LedgerInlineFormset(forms.BaseInlineFormSet):
     credit = 0
     for form in self.forms:
       cleaned_data = form.clean()
-      if not form.is_valid() or not cleaned_data:
+      if not form.is_valid() or not cleaned_data or cleaned_data.get('DELETE'):
         continue
       amount = cleaned_data.get('amount')
       account = cleaned_data.get('account')
